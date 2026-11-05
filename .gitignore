@@ -15,15 +15,30 @@ Listings/
 *.map
 *.lst
 *.lnp
-*.build_log.htm
+*.htm
 *.iex
 *.sct
 *.scvd
 RTE/
 
+# Keil 下载器的日志和本机设置，别人拿走也没用
+JLinkLog.txt
+JLinkSettings.ini
+DebugConfig/
+
 # ===== STM32CubeMX 中间文件 =====
 *.ioc.bak
 .mxproject
+
+# ===== CubeMX 原样拷进来的整个 CMSIS 包，本项目只用得上 Core 和 Device =====
+App/Drivers/CMSIS/DSP/
+App/Drivers/CMSIS/NN/
+App/Drivers/CMSIS/Core_A/
+App/Drivers/CMSIS/Core/Template/
+App/Drivers/CMSIS/Lib/
+App/Drivers/CMSIS/RTOS/
+App/Drivers/CMSIS/RTOS2/
+App/Drivers/CMSIS/docs/
 
 # ===== 编辑器 / 系统文件 =====
 .vscode/
