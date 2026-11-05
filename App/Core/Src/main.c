@@ -94,8 +94,8 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
-		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);   // ��ת PA15 ��ƽ��ԭ���Ǹ߾����ͣ�ԭ���ǵ;�����
-		HAL_Delay(500);                           // ���� 500 ���룬�� SysTick ÿ 1 �����ж��ۼӼ���
+		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);   // 翻转 PA15 电平，原来是高就拉低，原来是低就拉高
+		HAL_Delay(500);                           // 死等 500 毫秒，靠 SysTick 每 1 毫秒中断累加计数
 		
 		
     /* USER CODE END WHILE */
