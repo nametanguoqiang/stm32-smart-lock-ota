@@ -1,0 +1,36 @@
+# ===== Keil MDK 编译产物 =====
+# 这些每次编译都变，传上去只会让提交历史变成噪音
+Objects/
+Listings/
+*.uvguix.*
+*.uvoptx
+*.bak
+*.dep
+*.o
+*.d
+*.crf
+*.axf
+*.hex
+*.bin
+*.map
+*.lst
+*.lnp
+*.build_log.htm
+*.iex
+*.sct
+*.scvd
+RTE/
+
+# ===== STM32CubeMX 中间文件 =====
+*.ioc.bak
+.mxproject
+
+# ===== 编辑器 / 系统文件 =====
+.vscode/
+Thumbs.db
+desktop.ini
+.DS_Store
+
+# ===== 本地文档，不公开 =====
+# 交接文档是工作日志，有面试准备和进度规划，只留在本地
+交接文档.md
