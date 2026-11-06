@@ -133,10 +133,10 @@ int main(void)
 
 
   //CRC32 的标准测试
-  // const char *vec = "123456789";                        // CRC32 的标准测试向量
-  // uint32_t got = crc32_calc((const uint8_t *)vec, 9);    // 算这 9 个字节
-  // printf("CRC32 = 0x%08X\r\n", got);                     // 打印结果
-  // printf("expect= 0xCBF43926\r\n");                      // 打印期望值，肉眼比
+  const char *vec = "123456789";                        // CRC32 的标准测试向量
+  uint32_t got = crc32_calc((const uint8_t *)vec, 9);    // 算这 9 个字节
+  printf("CRC32 = 0x%08X\r\n", got);                     // 打印结果
+  printf("expect= 0xCBF43926\r\n");                      // 打印期望值，肉眼比
 
 
   //亮灯判断是否进入Bootloader段
