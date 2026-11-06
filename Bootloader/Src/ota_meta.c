@@ -61,7 +61,7 @@ void ota_meta_save(const ota_meta_t *m)
 
     HAL_FLASH_Unlock();                                                   // 解锁 Flash 控制寄存器，不解锁写不进去
 
-    __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPRTERR);  // 清掉上一轮残留的错误标志
+    __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPERR);  // 清掉上一轮残留的错误标志
 
     erase.TypeErase   = FLASH_TYPEERASE_PAGES;                            // 按页擦，不是整片擦
     erase.PageAddress = OTA_META_ADDR;                                    // 擦元数据所在那一页
