@@ -6,7 +6,6 @@
  * Bootloader 只有 16KB，省着点用。
  */
 #include "crc32.h"
-
 #define CRC32_POLY  0xEDB88320U
 
 uint32_t crc32_calc(const uint8_t *data, uint32_t len)

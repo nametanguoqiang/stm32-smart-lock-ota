@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>      // printf 和 FILE 类型的声明
 #include "crc32.h"      // crc32_calc 的声明
+#include "ota_meta.h"   // ota_meta_t 类型和那五个函数的声明
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -116,12 +117,12 @@ int main(void)
   ota_meta_load(&meta);                                                        // 从 Flash 最后一页读出来
 
   printf("magic=0x%08X slot=%d trial=%d cnt=%d\r\n",                            // 把关键字段打出来
-        meta.magic, meta.active_slot, meta.trial, meta.boot_count);
-
+  meta.magic, meta.active_slot, meta.trial, meta.boot_count);
   if (!ota_meta_is_valid(&meta))                                               // magic 或 crc_meta 不对
   {
       printf("meta invalid, init default\r\n");                                // 说明是第一次上电
-      ota_meta_set_default(&meta);                                             // 填默认值：启动 A
+      ota_meta_set_default(&meta);    
+
       ota_meta_save(&meta);                                                    // 写回 Flash
       printf("saved: slot=%d\r\n", meta.active_slot);                          // 确认写的是 A
   }
