@@ -58,8 +58,72 @@ static void MX_USART1_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-typedef void (*app_entry_t)(void);                        // 函数指针类型：无参数、无返回值
+//
+static uint32_t test_buf[512];                       // 2KB，正好一页
+static void flash_selftest(void)
+{
+    uint32_t i, p, err = 0, bad = 0;
+    uint32_t crc_before, crc_after;
+    FLASH_EraseInitTypeDef e;
 
+    printf("B first word = 0x%08X\r\n", *(volatile uint32_t *)OTA_SLOT_B_ADDR);
+
+    crc_before = crc32_flash(OTA_SLOT_A_ADDR, 2048 * 4);
+
+    for (i = 0; i < 512; i++)
+        test_buf[i] = 0xA5A50000U + i;
+
+    HAL_FLASH_Unlock();
+    __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPERR);
+
+    e.TypeErase   = FLASH_TYPEERASE_PAGES;
+    e.PageAddress = OTA_SLOT_B_ADDR;
+    e.NbPages     = 4;
+
+    if (HAL_FLASHEx_Erase(&e, &err) != HAL_OK)
+    {
+        printf("erase fail, page err = %d\r\n", err);
+        HAL_FLASH_Lock();
+        return;
+    }
+
+    for (p = 0; p < 4; p++)
+    {
+        for (i = 0; i < 512; i++)
+        {
+            if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,
+                                  OTA_SLOT_B_ADDR + p * 2048 + i * 4,
+                                  test_buf[i]) != HAL_OK)
+            {
+                printf("write fail at page %d word %d\r\n", p, i);
+                HAL_FLASH_Lock();
+                return;
+            }
+        }
+    }
+
+    for (p = 0; p < 4; p++)
+    {
+        for (i = 0; i < 512; i++)
+        {
+            if (*(volatile uint32_t *)(OTA_SLOT_B_ADDR + p * 2048 + i * 4) != test_buf[i])
+                bad++;
+        }
+    }
+
+    HAL_FLASH_Lock();
+
+    crc_after = crc32_flash(OTA_SLOT_A_ADDR, 2048 * 4);
+
+    printf("write %d words, bad %d\r\n", 4 * 512, bad);
+    printf("A crc before=0x%08X after=0x%08X %s\r\n",
+           crc_before, crc_after, (crc_before == crc_after) ? "OK" : "CHANGED");
+}
+
+
+
+//修改VTOR寄存器的值，指向App的中断向量表
+typedef void (*app_entry_t)(void);                        // 函数指针类型：无参数、无返回值
 static void jump_to_app(uint32_t app_addr)                // 传入 App 分区起始地址
 {
     uint32_t sp = *(volatile uint32_t *)app_addr;         // 向量表第 0 项，是 App 的栈顶地址
@@ -109,8 +173,9 @@ int main(void)
   /* Initialize all configured peripherals */
   MX_GPIO_Init();
   MX_USART1_UART_Init();
+  printf("B first word = 0x%08X\r\n", *(volatile uint32_t *)OTA_SLOT_B_ADDR);
   /* USER CODE BEGIN 2 */
-
+  flash_selftest();                                    // 先测 Flash 擦写读 
   
   //ota测试代码
   ota_meta_t meta;                                                             // 用来装读出来的元数据
