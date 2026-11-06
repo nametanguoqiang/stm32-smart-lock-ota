@@ -122,6 +122,7 @@ int main(void)
   {
       printf("meta invalid, init default\r\n");                                // 说明是第一次上电
       ota_meta_set_default(&meta);    
+      meta.magic = 0x12345678;      // 故意写错的 magic，验证第一道检查
 
       ota_meta_save(&meta);                                                    // 写回 Flash
       printf("saved: slot=%d\r\n", meta.active_slot);                          // 确认写的是 A
