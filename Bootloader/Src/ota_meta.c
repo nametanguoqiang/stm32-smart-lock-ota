@@ -54,7 +54,7 @@ void ota_meta_save(const ota_meta_t *m)
      * 注意：写之前要重算 crc_meta，别把旧的 CRC 写进去。
      */
     ota_meta_t tmp = *m;                                                  // 先拷一份，不动调用者传进来的数据
-    tmp.crc_meta = crc32_calc((const uint8_t *)&tmp, META_CRC_LEN);       // 按最终要写的内容重算自校验
+//    tmp.crc_meta = crc32_calc((const uint8_t *)&tmp, META_CRC_LEN);       // 按最终要写的内容重算自校验
 
     FLASH_EraseInitTypeDef erase;                                         // 擦除参数结构体
     uint32_t page_err = 0;                                                // 擦除失败时，这里回填出错的页号

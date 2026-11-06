@@ -114,6 +114,11 @@ int main(void)
   
   //ota测试代码
   ota_meta_t meta;                                                             // 用来装读出来的元数据
+  ota_meta_t bad;                                                       // 另开一个结构体，不动正在用的 meta
+  ota_meta_set_default(&bad);                                           // 按默认值算好 crc_meta
+  bad.boot_count = 999;                                                 // 只改内容，crc_meta 还是旧的
+  ota_meta_save(&bad);                                                  // 写进去：magic 对，CRC 对不上
+
   ota_meta_load(&meta);                                                        // 从 Flash 最后一页读出来
 
   printf("magic=0x%08X slot=%d trial=%d cnt=%d\r\n",                            // 把关键字段打出来
