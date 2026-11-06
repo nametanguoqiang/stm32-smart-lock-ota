@@ -53,6 +53,41 @@ void ota_meta_save(const ota_meta_t *m)
      *
      * 注意：写之前要重算 crc_meta，别把旧的 CRC 写进去。
      */
+    ota_meta_t tmp = *m;                                                  // 先拷一份，不动调用者传进来的数据
+    tmp.crc_meta = crc32_calc((const uint8_t *)&tmp, META_CRC_LEN);       // 按最终要写的内容重算自校验
+
+    FLASH_EraseInitTypeDef erase;                                         // 擦除参数结构体
+    uint32_t page_err = 0;                                                // 擦除失败时，这里回填出错的页号
+
+    HAL_FLASH_Unlock();                                                   // 解锁 Flash 控制寄存器，不解锁写不进去
+
+    __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPRTERR);  // 清掉上一轮残留的错误标志
+
+    erase.TypeErase   = FLASH_TYPEERASE_PAGES;                            // 按页擦，不是整片擦
+    erase.PageAddress = OTA_META_ADDR;                                    // 擦元数据所在那一页
+    erase.NbPages     = 1;                                                // 只擦一页（2KB）
+
+    if (HAL_FLASHEx_Erase(&erase, &page_err) != HAL_OK)                   // 擦除失败就退出
+    {
+        HAL_FLASH_Lock();                                                 // 失败也要锁回去，不然 Flash 一直开着
+        return;
+    }
+
+    const uint32_t *src = (const uint32_t *)&tmp;                         // 把结构体当成一串 32 位字
+    for (uint32_t i = 0; i < sizeof(ota_meta_t) / 4; i++)                 // 20 字节 / 4 = 5 次
+    {
+        if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,                     // 一次写 32 位
+                                OTA_META_ADDR + i * 4,                      // 第 i 个字要写到哪个地址
+                                src[i]) != HAL_OK)                          // 要写的内容
+        {
+            HAL_FLASH_Lock();                                             // 写失败就停，别继续写
+            return;
+        }
+    }
+
+    HAL_FLASH_Lock();                                                     // 全部写完，锁回去防止误写
+
+
 }
 
 uint32_t ota_slot_addr(uint8_t slot)
