@@ -117,6 +117,28 @@ int main(void)
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
   
+  //W25Q128 读写测试
+  {
+      uint8_t wbuf[256];                                              // 写缓冲，一页 256 字节
+      uint8_t rbuf[256];                                              // 读缓冲，读回来逐字节比对
+      uint32_t i, bad = 0;                                            // bad 统计不一致的字节数
+
+      printf("W25Q ID = 0x%06X (expect 0xEF4018)\r\n", w25q_read_id());   // 读 JEDEC ID，验证 SPI 链路
+
+      w25q_read(0, rbuf, 4);                                          // 擦之前先看头 4 个字节，确认是 FF
+      printf("before erase: %02X %02X %02X %02X\r\n", rbuf[0], rbuf[1], rbuf[2], rbuf[3]);
+
+      for (i = 0; i < 256; i++) wbuf[i] = (uint8_t)i;                 // 每字节都不同，错位能立刻暴露
+
+      w25q_erase_sector(0);                                           // 擦第 0 扇区（4KB）
+      w25q_write(0, wbuf, 256);                                       // 写 256 字节到地址 0
+      w25q_read(0, rbuf, 256);                                        // 读回来
+
+      for (i = 0; i < 256; i++) if (rbuf[i] != wbuf[i]) bad++;        // 逐字节比对
+
+      printf("W25Q rw: wrote 256, bad %u\r\n", bad);                  // bad 必须是 0
+  }
+
   //ota测试代码
   ota_meta_t meta;                                                             // 用来装读出来的元数据
   ota_meta_load(&meta);                                                        // 从 Flash 最后一页读出来
