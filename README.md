@@ -97,6 +97,7 @@
 | `test/meta-magic` | 把 magic 改成 `0x12345678` 再写回 Flash | 上电打印 `meta invalid`，第一道检查生效 |
 | `test/meta-crc` | magic 正确，但改 `boot_count` 不重算 CRC | 上电打印 `meta invalid`，第二道检查生效 |
 | `test/flash-selftest` | 擦写 8KB 到 B 分区并逐字比对 | 2048 个字 0 错误，A 分区 CRC 前后一致 |
+| `test/w25q-id` | 通过 SPI2 读 W25Q128 的 JEDEC ID | 返回 `0xEF4018`（Winbond / SPI Flash / 16MB），链路正常 |
 
 ---
 
