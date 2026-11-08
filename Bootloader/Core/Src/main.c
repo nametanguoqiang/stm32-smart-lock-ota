@@ -82,6 +82,39 @@ static void jump_to_app(uint32_t app_addr)                // 传入 App 分区�
     ((app_entry_t)pc)();                                  // 跳到 App 的 Reset_Handler，不返回
 }
 
+
+#define COPY_SIZE  16384                                            // 复制 16KB，覆盖当前 App 并留余量
+
+static uint8_t copy_buf[256];                                       // 一页缓冲，256 字节
+
+static void copy_app_to_w25q(void)
+{
+    uint32_t off, i, bad = 0;
+
+    printf("copy A -> W25Q, %u bytes\r\n", COPY_SIZE);               // 先报要复制多少
+
+    for (off = 0; off < COPY_SIZE; off += 4096)                     // 16KB = 4 个扇区，先全擦干净
+        w25q_erase_sector(off);
+
+    for (off = 0; off < COPY_SIZE; off += 256)                      // 16KB = 64 页，一页一页搬
+    {
+        for (i = 0; i < 256; i++)                                   // 从内部 Flash 读一页
+            copy_buf[i] = *(volatile uint8_t *)(OTA_SLOT_A_ADDR + off + i);
+
+        w25q_write(off, copy_buf, 256);                             // 写进 W25Q 的同一个偏移
+    }
+
+    for (off = 0; off < COPY_SIZE; off += 256)                      // 读回来逐字节比对
+    {
+        w25q_read(off, copy_buf, 256);
+        for (i = 0; i < 256; i++)
+            if (copy_buf[i] != *(volatile uint8_t *)(OTA_SLOT_A_ADDR + off + i))
+                bad++;                                              // 不一致就加一
+    }
+
+    printf("copy done, bad %u\r\n", bad);                            // bad 必须是 0
+}
+
 /* USER CODE END 0 */
 
 /**
@@ -116,7 +149,8 @@ int main(void)
   MX_USART1_UART_Init();
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
-  
+  copy_app_to_w25q();                                                 // 先造一份升级包
+
   //ota测试代码
   ota_meta_t meta;                                                             // 用来装读出来的元数据
   ota_meta_load(&meta);                                                        // 从 Flash 最后一页读出来
