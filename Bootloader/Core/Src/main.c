@@ -58,8 +58,9 @@ static void MX_USART1_UART_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+//
+//修改VTOR寄存器的值，指向App的中断向量表
 typedef void (*app_entry_t)(void);                        // 函数指针类型：无参数、无返回值
-
 static void jump_to_app(uint32_t app_addr)                // 传入 App 分区起始地址
 {
     uint32_t sp = *(volatile uint32_t *)app_addr;         // 向量表第 0 项，是 App 的栈顶地址
@@ -110,7 +111,6 @@ int main(void)
   MX_GPIO_Init();
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
-
   
   //ota测试代码
   ota_meta_t meta;                                                             // 用来装读出来的元数据
@@ -132,11 +132,6 @@ int main(void)
   }
 
 
-  //CRC32 的标准测试
-  // const char *vec = "123456789";                        // CRC32 的标准测试向量
-  // uint32_t got = crc32_calc((const uint8_t *)vec, 9);    // 算这 9 个字节
-  // printf("CRC32 = 0x%08X\r\n", got);                     // 打印结果
-  // printf("expect= 0xCBF43926\r\n");                      // 打印期望值，肉眼比
 
 
   //亮灯判断是否进入Bootloader段
