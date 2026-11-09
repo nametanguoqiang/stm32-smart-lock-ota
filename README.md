@@ -98,6 +98,8 @@
 | `test/meta-crc` | magic 正确，但改 `boot_count` 不重算 CRC | 上电打印 `meta invalid`，第二道检查生效 |
 | `test/flash-selftest` | 擦写 8KB 到 B 分区并逐字比对 | 2048 个字 0 错误，A 分区 CRC 前后一致 |
 | `test/w25q-id` | 通过 SPI2 读 W25Q128 的 JEDEC ID | 返回 `0xEF4018`（Winbond / SPI Flash / 16MB），链路正常 |
+| `test/w25q-rw` | 擦一个 4KB 扇区、写 256 字节、读回逐字节比对 | `bad 0`，擦写读链路正常 |
+| `test/ota-prepare` | 把 A 区固件 16KB 复制到 W25Q128 暂存区 | `bad 0`，升级包准备就绪 |
 
 ---
 
