@@ -82,6 +82,7 @@ static int ota_copy_to_b(void)
     if (HAL_FLASHEx_Erase(&e, &err) != HAL_OK)                      // 擦失败就退出
     {
         HAL_FLASH_Lock();
+        
         printf("[App] erase fail, page err = %u\r\n", err);
         return -1;
     }
@@ -111,7 +112,10 @@ static int ota_copy_to_b(void)
     }
 
     HAL_FLASH_Lock();                                               // 写完上锁
-
+    // ===== 负向测试：故意把 B 区第一个字写成 0，验证比对能发现 =====
+    HAL_FLASH_Unlock();                                             // 重新解锁
+    HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD, OTA_SLOT_B_ADDR, 0x00000000U);   // 把第一个字清零
+    HAL_FLASH_Lock();                                               // 锁回去
     printf("[App] verify...\r\n");                                  // 开始回读比对
 
     for (off = 0; off < FW_SIZE; off += 256)
