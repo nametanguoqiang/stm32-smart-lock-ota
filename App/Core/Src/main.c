@@ -23,6 +23,7 @@
 /* USER CODE BEGIN Includes */
 #include <stdio.h>      // printf 和 FILE 类型的声明
 #include "w25q.h"       // w25q_read_id 的声明
+#include "ota_meta.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,6 +62,69 @@ static void MX_USART1_UART_Init(void);
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
 
+#define FW_SIZE  16384                                              // 升级包大小，和 Bootloader 的 COPY_SIZE 一致
+// 下面这个函数把 W25Q 的内容搬到 B 区，返回 0=成功，-1=擦失败，-2=写失败，-3=比对失败
+static int ota_copy_to_b(void)
+{
+    static uint8_t buf[256];                                        // 一页缓冲
+    uint32_t off, i, bad = 0, err = 0;
+    FLASH_EraseInitTypeDef e;
+
+    printf("[App] erase B...\r\n");                                 // 开始擦 B 区
+
+    HAL_FLASH_Unlock();                                             // 解锁 Flash 控制寄存器
+    __HAL_FLASH_CLEAR_FLAG(FLASH_FLAG_EOP | FLASH_FLAG_PGERR | FLASH_FLAG_WRPERR);   // 清残留错误标志
+
+    e.TypeErase   = FLASH_TYPEERASE_PAGES;                          // 按页擦
+    e.PageAddress = OTA_SLOT_B_ADDR;                                // B 区起始地址 0x0801C000
+    e.NbPages     = FW_SIZE / 2048;                                 // 16KB / 2KB = 8 页
+
+    if (HAL_FLASHEx_Erase(&e, &err) != HAL_OK)                      // 擦失败就退出
+    {
+        HAL_FLASH_Lock();
+        printf("[App] erase fail, page err = %u\r\n", err);
+        return -1;
+    }
+
+    printf("[App] copy W25Q -> B...\r\n");                          // 开始搬
+
+    for (off = 0; off < FW_SIZE; off += 256)                        // 16KB / 256 = 64 页
+    {
+        w25q_read(off, buf, 256);                                   // 从 W25Q 读一页
+
+        for (i = 0; i < 256; i += 4)                                // 一页拆成 64 个字
+        {
+            uint32_t w = (uint32_t)buf[i]                           // 小端拼接：低字节在前
+                       | ((uint32_t)buf[i + 1] << 8)
+                       | ((uint32_t)buf[i + 2] << 16)
+                       | ((uint32_t)buf[i + 3] << 24);
+
+            if (HAL_FLASH_Program(FLASH_TYPEPROGRAM_WORD,           // 一次写 32 位
+                                  OTA_SLOT_B_ADDR + off + i,        // 写到 B 区的对应位置
+                                  w) != HAL_OK)
+            {
+                HAL_FLASH_Lock();
+                printf("[App] write fail at %u\r\n", off + i);
+                return -2;
+            }
+        }
+    }
+
+    HAL_FLASH_Lock();                                               // 写完上锁
+
+    printf("[App] verify...\r\n");                                  // 开始回读比对
+
+    for (off = 0; off < FW_SIZE; off += 256)
+    {
+        w25q_read(off, buf, 256);                                   // 从 W25Q 再读一页
+        for (i = 0; i < 256; i++)
+            if (buf[i] != *(volatile uint8_t *)(OTA_SLOT_B_ADDR + off + i))
+                bad++;                                              // 和 B 区的对应字节比
+    }
+
+    printf("[App] copy to B: %u bytes, bad %u\r\n", FW_SIZE, bad);
+    return (bad == 0) ? 0 : -3;                                     // 0 成功，-3 表示比对失败
+}
 /* USER CODE END 0 */
 
 /**
@@ -96,9 +160,11 @@ int main(void)
   MX_USART1_UART_Init();
   /* USER CODE BEGIN 2 */
 
+
   printf("[App] W25Q ID = 0x%06X\r\n", w25q_read_id());   // 读 JEDEC ID，验证 App 侧 SPI 通不通
   printf("[App] hello\r\n");                              // 确认 printf 本身能用
-
+  
+  ota_copy_to_b();                                                    // 把 W25Q 里的升级包写进 B 区  
   
   /* USER CODE END 2 */
 
