@@ -1,20 +1,20 @@
 /* USER CODE BEGIN Header */
 /**
-  ******************************************************************************
-  * @file           : main.c
-  * @brief          : Main program body
-  ******************************************************************************
-  * @attention
-  *
-  * Copyright (c) 2026 STMicroelectronics.
-  * All rights reserved.
-  *
-  * This software is licensed under terms that can be found in the LICENSE file
-  * in the root directory of this software component.
-  * If no LICENSE file comes with this software, it is provided AS-IS.
-  *
-  ******************************************************************************
-  */
+	******************************************************************************
+	* @file           : main.c
+	* @brief          : Main program body
+	******************************************************************************
+	* @attention
+	*
+	* Copyright (c) 2026 STMicroelectronics.
+	* All rights reserved.
+	*
+	* This software is licensed under terms that can be found in the LICENSE file
+	* in the root directory of this software component.
+	* If no LICENSE file comes with this software, it is provided AS-IS.
+	*
+	******************************************************************************
+	*/
 /* USER CODE END Header */
 /* Includes ------------------------------------------------------------------*/
 #include "main.h"
@@ -34,7 +34,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-
+#define OTA_FW_SIZE  16384U                                     // 一次校验的固件长度，和 App 的 FW_SIZE 一致
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -67,19 +67,19 @@ static void MX_SPI2_Init(void);
 typedef void (*app_entry_t)(void);                        // 函数指针类型：无参数、无返回值
 static void jump_to_app(uint32_t app_addr)                // 传入 App 分区起始地址
 {
-    uint32_t sp = *(volatile uint32_t *)app_addr;         // 向量表第 0 项，是 App 的栈顶地址
-    uint32_t pc = *(volatile uint32_t *)(app_addr + 4);   // 第 1 项，是 Reset_Handler 的地址
+	uint32_t sp = *(volatile uint32_t *)app_addr;         // 向量表第 0 项，是 App 的栈顶地址
+	uint32_t pc = *(volatile uint32_t *)(app_addr + 4);   // 第 1 项，是 Reset_Handler 的地址
 
-    if ((sp & 0xFFF00000) != 0x20000000) return;          // 栈顶必须落在 SRAM（0x20000000 起 48KB），不对就说明这没固件
+	if ((sp & 0xFFF00000) != 0x20000000) return;          // 栈顶必须落在 SRAM（0x20000000 起 48KB），不对就说明这没固件
 
-    __disable_irq();                                      // 关总中断，防止换栈换表的过程被打断
-    SysTick->CTRL = 0;                                    // 关 SysTick，不然跳过去它还在数，一溢出就跳回 Bootloader
-    SysTick->LOAD = 0;                                    // 清装载值
-    SysTick->VAL  = 0;                                    // 清当前计数
-    SCB->VTOR = app_addr;                                 // 把向量表基址指到 App 的表
-    __set_MSP(sp);                                        // 把主栈指针换成 App 的栈顶
-    __enable_irq();                                       // 重新开中断，不开的话 App 里所有中断都不响应
-    ((app_entry_t)pc)();                                  // 跳到 App 的 Reset_Handler，不返回
+	__disable_irq();                                      // 关总中断，防止换栈换表的过程被打断
+	SysTick->CTRL = 0;                                    // 关 SysTick，不然跳过去它还在数，一溢出就跳回 Bootloader
+	SysTick->LOAD = 0;                                    // 清装载值
+	SysTick->VAL  = 0;                                    // 清当前计数
+	SCB->VTOR = app_addr;                                 // 把向量表基址指到 App 的表
+	__set_MSP(sp);                                        // 把主栈指针换成 App 的栈顶
+	__enable_irq();                                       // 重新开中断，不开的话 App 里所有中断都不响应
+	((app_entry_t)pc)();                                  // 跳到 App 的 Reset_Handler，不返回
 }
 
 /* USER CODE END 0 */
@@ -116,50 +116,98 @@ int main(void)
   MX_USART1_UART_Init();
   MX_SPI2_Init();
   /* USER CODE BEGIN 2 */
-  
-  //ota测试代码
-  ota_meta_t meta;                                                             // 用来装读出来的元数据
-  ota_meta_load(&meta);                                                        // 从 Flash 最后一页读出来
 
-  printf("magic=0x%08X slot=%d trial=%d cnt=%d\r\n",                            // 把关键字段打出来
-  meta.magic, meta.active_slot, meta.trial, meta.boot_count);
-  if (!ota_meta_is_valid(&meta))                                               // magic 或 crc_meta 不对
-  {
-      printf("meta invalid, init default\r\n");                                // 说明是第一次上电
-      ota_meta_set_default(&meta);    
+	//ota测试代码
+	ota_meta_t meta;                                                             // 用来装读出来的元数据
+	ota_meta_load(&meta);                                                        // 从 Flash 最后一页读出来
 
-      ota_meta_save(&meta);                                                    // 写回 Flash
-      printf("saved: slot=%d\r\n", meta.active_slot);                          // 确认写的是 A
-  }
-  else
-  {
-      printf("meta ok\r\n");                                                   // 元数据有效，直接用
-  }
+	printf("magic=0x%08X slot=%d trial=%d cnt=%d\r\n",                            // 把关键字段打出来
+		meta.magic, meta.active_slot, meta.trial, meta.boot_count);	// 四个字段依次打印
+	if (!ota_meta_is_valid(&meta))                                               // magic 或 crc_meta 不对
+	{
+		printf("meta invalid, init default\r\n");                                // 说明是第一次上电
+		ota_meta_set_default(&meta);								// 填默认值：启动 A
 
-
+		ota_meta_save(&meta);                                                    // 写回 Flash
+		printf("saved: slot=%d\r\n", meta.active_slot);                          // 确认写的是 A
+	}
+	else																	// 元数据有效
+	{
+		printf("meta ok\r\n");                                                   // 元数据有效，直接用
+	}
 
 
-  //亮灯判断是否进入Bootloader段
-  for (int i = 0; i < 3; i++)                                        // 快闪三下，和 App 的慢闪区分开
-  {
-      HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_RESET);         // 拉低，灯亮
-      HAL_Delay(100);                                                // 100 毫秒
-      HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_SET);           // 拉高，灯灭
-      HAL_Delay(100);                                                // 100 毫秒
-  }
+	//亮灯判断是否进入Bootloader段
+	for (int i = 0; i < 3; i++)                                        // 快闪三下，和 App 的慢闪区分开
+	{
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_RESET);         // 拉低，灯亮
+		HAL_Delay(100);                                                // 100 毫秒
+		HAL_GPIO_WritePin(GPIOA, GPIO_PIN_15, GPIO_PIN_SET);           // 拉高，灯灭
+		HAL_Delay(100);                                                // 100 毫秒
+	}
 
-jump_to_app(0x08004000);                                           // 交给 App
+	uint8_t slot = meta.active_slot;                                 // 元数据说启动哪个槽
+	uint8_t other = (slot == OTA_SLOT_A) ? OTA_SLOT_B : OTA_SLOT_A;  // 另一个槽
+	uint8_t fell_back = 0;                                           // 1 = 选中槽 CRC 失败，已经切到另一个槽
+	uint32_t expect = (slot == OTA_SLOT_A) ? meta.crc_a : meta.crc_b;
+	uint32_t crc = crc32_flash(ota_slot_addr(slot), OTA_FW_SIZE);    // 算选中槽的 CRC
 
+	printf("[Boot] slot=%d crc=0x%08X expect=0x%08X\r\n", slot, crc, expect);
+
+	if (expect != 0 && crc != expect)                                // 登记过、而且对不上
+	{
+		uint32_t expect2 = (other == OTA_SLOT_A) ? meta.crc_a : meta.crc_b;
+		uint32_t crc2 = crc32_flash(ota_slot_addr(other), OTA_FW_SIZE);
+
+		printf("[Boot] crc fail, other=%d crc=0x%08X expect=0x%08X\r\n", other, crc2, expect2);
+
+		if (expect2 != 0 && crc2 == expect2)                        // 另一个槽是好的
+		{
+			printf("[Boot] fallback to slot=%d\r\n", other);        // 先只跳，不写元数据
+			slot = other;                                           // 这次跳另一个槽
+			fell_back = 1;                                          // 标记走过 CRC 回退
+		}
+		else                                                        // 两个都不可信
+		{
+			printf("[Boot] both slots bad, stay\r\n");              // 不跳，留在 Bootloader
+			while (1)
+			{
+				HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);             // 快闪报警
+				HAL_Delay(100);
+			}
+		}
+	}
+	if (meta.trial == 1 && !fell_back)                              // 试启动，而且没走 CRC 回退
+	{
+		if (meta.boot_count >= 3)                                   // 已经连续失败三次
+		{
+			uint8_t old_slot = meta.active_slot;                    // 记一下原来的槽
+			meta.active_slot = other;                               // 切回另一个槽
+			meta.trial = 0;                                         // 不再试启动
+			meta.boot_count = 0;                                    // 计数清零
+			ota_meta_save(&meta);                                   // 写回
+			printf("[Boot] rollback %d -> %d\r\n", old_slot, meta.active_slot);  // 打印
+			slot = meta.active_slot;                                // 这次就跳旧槽
+		}
+		else
+		{
+			meta.boot_count++;                                      // 记一次失败
+			ota_meta_save(&meta);                                   // 写回
+			printf("[Boot] trial, boot_count=%d\r\n", meta.boot_count);  // 打印
+		}
+	}
+
+	jump_to_app(ota_slot_addr(slot));                                // 跳到选中的槽
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-  while (1)
-  {
+	while (1)
+	{
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-  }
+	}
   /* USER CODE END 3 */
 }
 
@@ -318,8 +366,8 @@ static void MX_GPIO_Init(void)
 /* USER CODE BEGIN 4 */
 int fputc(int ch, FILE *f)                                          // printf 每输出一个字符就调它一次
 {
-    HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);   // 用串口1发这一个字节，死等到发完
-    return ch;                                                      // 原样返回，不然 printf 以为写失败会中断
+	HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1, HAL_MAX_DELAY);   // 用串口1发这一个字节，死等到发完
+	return ch;                                                      // 原样返回，不然 printf 以为写失败会中断
 }
 /* USER CODE END 4 */
 
@@ -330,11 +378,11 @@ int fputc(int ch, FILE *f)                                          // printf �
 void Error_Handler(void)
 {
   /* USER CODE BEGIN Error_Handler_Debug */
-  /* User can add his own implementation to report the HAL error return state */
-  __disable_irq();
-  while (1)
-  {
-  }
+	/* User can add his own implementation to report the HAL error return state */
+	__disable_irq();
+	while (1)
+	{
+	}
   /* USER CODE END Error_Handler_Debug */
 }
 #ifdef USE_FULL_ASSERT
@@ -348,8 +396,8 @@ void Error_Handler(void)
 void assert_failed(uint8_t *file, uint32_t line)
 {
   /* USER CODE BEGIN 6 */
-  /* User can add his own implementation to report the file name and line number,
-     ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
+	/* User can add his own implementation to report the file name and line number,
+	ex: printf("Wrong parameters value: file %s on line %d\r\n", file, line) */
   /* USER CODE END 6 */
 }
 #endif /* USE_FULL_ASSERT */

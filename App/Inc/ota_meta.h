@@ -17,14 +17,16 @@
 
 // ---------- 元数据结构 ----------
 typedef struct {                                                // 元数据结构开始
-    uint32_t magic;                                             // 固定 0x5A5AA5A5，判断这块区域有没有被初始化过
-    uint8_t  active_slot;                                       // 当前该启动哪个槽：0=A，1=B
-    uint8_t  trial;                                             // 1 = 新固件处于试启动，还没被 App 确认
-    uint16_t boot_count;                                        // 试启动状态下连续启动了几次
-    uint32_t crc_a;                                             // App-A 的 CRC32
-    uint32_t crc_b;                                             // App-B 的 CRC32
-    uint32_t crc_meta;                                          // 本结构体前 16 字节的 CRC32（不算自己）
-} ota_meta_t;                                                   // 结构体类型名，共 20 字节
+	uint32_t magic;                                             // 固定 0x5A5AA5A5，判断这块区域有没有被初始化过
+	uint8_t  active_slot;                                       // 当前该启动哪个槽：0=A，1=B
+	uint8_t  trial;                                             // 1 = 新固件处于试启动，还没被 App 确认
+	uint16_t boot_count;                                        // 试启动状态下连续启动了几次
+	uint32_t crc_a;                                             // App-A 的 CRC32
+	uint32_t crc_b;                                             // App-B 的 CRC32
+	uint8_t  ota_req;                                           // 1 = 有升级请求，A 跑起来才做 OTA
+	uint8_t  reserved[3];                                       // 补齐 4 字节，保证 crc_meta 对齐
+	uint32_t crc_meta;                                          // 本结构体前 20 字节的 CRC32（不算自己）
+} ota_meta_t;                                                   // 结构体类型名，共 24 字节
 
 // ---------- 接口 ----------
 void ota_meta_load(ota_meta_t *m);                              // 从 Flash 读出来
