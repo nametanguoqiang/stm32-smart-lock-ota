@@ -135,7 +135,12 @@ int main(void)
 	{
 		printf("meta ok\r\n");                                                   // 元数据有效，直接用
 	}
-
+	// ===== 临时：登记 A 的新 CRC，测完删 =====
+	meta.crc_a = crc32_flash(OTA_SLOT_A_ADDR, OTA_FW_SIZE);
+	meta.crc_b = crc32_flash(OTA_SLOT_B_ADDR, OTA_FW_SIZE);
+	ota_meta_save(&meta);
+	printf("[Boot] adopt crc_a=0x%08X crc_b=0x%08X\r\n", meta.crc_a, meta.crc_b);
+	// ===== 临时结束 =====
 
 	//亮灯判断是否进入Bootloader段
 	for (int i = 0; i < 3; i++)                                        // 快闪三下，和 App 的慢闪区分开

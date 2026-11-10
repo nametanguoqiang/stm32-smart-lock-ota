@@ -230,20 +230,32 @@ int main(void)
 			printf("[App] fallback boot, not confirm\r\n");         // 不清 trial
 		}
 	}
+
+  	// ===== 第 9 步：打印时钟树，确认 72MHz =====
+	printf("[App] HCLK=%lu PCLK1=%lu PCLK2=%lu\r\n",                // 三个主频
+  (unsigned long)HAL_RCC_GetHCLKFreq(),                       // 72MHz
+  (unsigned long)HAL_RCC_GetPCLK1Freq(),                      // 36MHz
+  (unsigned long)HAL_RCC_GetPCLK2Freq());                     // 72MHz
   /* USER CODE END 2 */
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
+	uint32_t last_tick = 0;                                         // 上一次打印心跳的 tick
+
 	while (1)
 	{
-	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);   // 翻转 PA15 电平，原来是高就拉低，原来是低就拉高
-	HAL_Delay(500);                           // 死等 500 毫秒，靠 SysTick 每 1 毫秒中断累加计数
+		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);                     // 500ms 翻转，1 秒一个周期
+		HAL_Delay(500);                                             // 靠 SysTick 的 1ms 累加
 
-
+		if (HAL_GetTick() - last_tick >= 1000)                      // 每 1 秒打一次
+		{
+			last_tick = HAL_GetTick();                              // 记下这次的 tick
+			printf("[App] tick=%lu\r\n", (unsigned long)last_tick); // 每次应该加 1000
+		}
+	}
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	}
   /* USER CODE END 3 */
 }
 
