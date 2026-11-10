@@ -173,6 +173,28 @@ void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)  // 任
 	{
 	}
 }
+
+static void vLedTask(void *pvParameters)                            // 闪灯任务
+{
+	(void)pvParameters;
+
+	for (;;)
+	{
+		HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);                     // 500ms 翻转，1 秒一个周期
+		vTaskDelay(pdMS_TO_TICKS(500));                              // 让出 CPU 500ms
+	}
+}
+
+static void vPrintTask(void *pvParameters)                          // 打印任务
+{
+	(void)pvParameters;
+
+	for (;;)
+	{
+		printf("[RTOS] tick=%lu\r\n", (unsigned long)xTaskGetTickCount());
+		vTaskDelay(pdMS_TO_TICKS(1000));                             // 每秒打一次
+	}
+}
 /* USER CODE END 0 */
 
 /**
@@ -254,16 +276,18 @@ int main(void)
 
   /* Infinite loop */
   /* USER CODE BEGIN WHILE */
-	while (1)
-	{
-	HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_15);   // 翻转 PA15 电平，原来是高就拉低，原来是低就拉高
-	HAL_Delay(500);                           // 死等 500 毫秒，靠 SysTick 每 1 毫秒中断累加计数
+	xTaskCreate(vLedTask,   "LED",   128, NULL, 2, NULL);           // 闪灯任务，2 级
+	xTaskCreate(vPrintTask, "PRINT", 256, NULL, 1, NULL);           // 打印任务，1 级，栈大一点
 
+	vTaskStartScheduler();                                           // 启动调度器，正常不返回
+
+	while (1)                                                        // 只有堆不够才会走到这里
+	{
+	}
 
     /* USER CODE END WHILE */
 
     /* USER CODE BEGIN 3 */
-	}
   /* USER CODE END 3 */
 }
 
