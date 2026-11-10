@@ -25,6 +25,8 @@
 #include "w25q.h"       // w25q_read_id 的声明
 #include "ota_meta.h"
 #include "crc32.h"      // crc32_flash 的声明，算 A/B 区 CRC 用
+#include "FreeRTOS.h"
+#include "task.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -152,6 +154,24 @@ printf("[App] copy to B: %u bytes, bad %u\r\n", FW_SIZE, bad);  // 报结果
 		meta.crc_a, meta.crc_b);                                    // 两个槽的 CRC
 
 	return 0;                                                       // 成功
+}
+
+void vApplicationMallocFailedHook(void)                             // 堆不够时进来
+{
+	taskDISABLE_INTERRUPTS();                                       // 关中断，停在原地
+	for (;;)
+	{
+	}
+}
+
+void vApplicationStackOverflowHook(TaskHandle_t xTask, char *pcTaskName)  // 任务栈溢出时进来
+{
+	(void)xTask;
+	(void)pcTaskName;
+	taskDISABLE_INTERRUPTS();                                       // 关中断，停在原地
+	for (;;)
+	{
+	}
 }
 /* USER CODE END 0 */
 
