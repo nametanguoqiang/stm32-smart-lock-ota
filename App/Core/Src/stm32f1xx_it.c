@@ -142,7 +142,7 @@ void UsageFault_Handler(void)
   }
 }
 
-/* SVC_Handler 和 PendSV_Handler 由 FreeRTOS 的 port.c 提供，这里不能重复定义 */
+/* SVC_Handler 由 FreeRTOS 的 port.c 提供，CubeMX 生成后要再删一次 */
 
 /**
   * @brief This function handles Debug monitor.
@@ -157,7 +157,7 @@ void DebugMon_Handler(void)
   /* USER CODE END DebugMonitor_IRQn 1 */
 }
 
-/* PendSV_Handler 由 FreeRTOS 的 port.c 提供，这里不能重复定义 */
+/* PendSV_Handler 由 FreeRTOS 的 port.c 提供，CubeMX 生成后要再删一次 */
 
 /**
   * @brief This function handles System tick timer.
@@ -167,14 +167,12 @@ void SysTick_Handler(void)
   /* USER CODE BEGIN SysTick_IRQn 0 */
 
   /* USER CODE END SysTick_IRQn 0 */
-  HAL_IncTick();                                              // HAL 的 1ms 时基，HAL_Delay 靠它
-
+  HAL_IncTick();
+  /* USER CODE BEGIN SysTick_IRQn 1 */
   if (xTaskGetSchedulerState() != taskSCHEDULER_NOT_STARTED)  // 调度器没启动前不要碰 RTOS
   {
     xPortSysTickHandler();                                    // FreeRTOS 的 tick
   }
-  /* USER CODE BEGIN SysTick_IRQn 1 */
-
   /* USER CODE END SysTick_IRQn 1 */
 }
 
